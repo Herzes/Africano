@@ -1,44 +1,149 @@
 
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Ajibikes Fashion Collection - African Fabric & Fashion Designer</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Outfit', sans-serif;
-        background-color: #fcfaf7;
-      }
-      h1, h2, h3 {
-        font-family: 'Playfair Display', serif;
-      }
-      .custom-scrollbar::-webkit-scrollbar {
-        width: 8px;
-      }
-      .custom-scrollbar::-webkit-scrollbar-track {
-        background: #f1f1f1;
-      }
-      .custom-scrollbar::-webkit-scrollbar-thumb {
-        background: #d4a373;
-        border-radius: 4px;
-      }
-    </style>
-  <script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@^19.2.3",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "@google/genai": "https://esm.sh/@google/genai@^1.34.0"
-  }
-}
-</script>
-</head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
-  </body>
-</html>
+import React, { useState } from 'react';
+import FabricCanvas from './components/FabricCanvas';
+import GarmentForm from './components/GarmentForm';
+import DesignGallery from './components/DesignGallery';
+import FashionGuide from './components/FashionGuide';
+import { FashionDetails, GeneratedDesign } from './types';
+import { generateFashionIdeas } from './services/geminiService';
+
+const App: React.FC = () => {
+  const [step, setStep] = useState<'canvas' | 'form' | 'results'>('canvas');
+  const [fabricImage, setFabricImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [generatedImages, setGeneratedImages] = useState<string[]>([]);
+  const [showGuide, setShowGuide] = useState(false);
+  
+  const [details, setDetails] = useState<FashionDetails>({
+    style: 'Gown',
+    occasion: 'Wedding',
+    audience: 'Female',
+    hairPreference: '',
+    shoePreference: '',
+    jewelryPreference: '',
+    accessories: [],
+    additionalInfo: '',
+  });
+
+  const handlePatternSave = (base64: string) => {
+    setFabricImage(base64);
+    setStep('form');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleGenerate = async () => {
+    if (!fabricImage) return;
+    setLoading(true);
+    try {
+      const images = await generateFashionIdeas(fabricImage, details);
+      setGeneratedImages(images);
+      setStep('results');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } catch (err) {
+      alert("Failed to generate designs. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRefresh = async () => {
+    await handleGenerate();
+  };
+
+  return (
+    <div className="min-h-screen pb-20 px-4 md:px-8">
+      {/* Header */}
+      <header className="py-8 flex flex-col items-center text-center">
+        <div className="inline-block p-2 px-6 bg-orange-100 rounded-full mb-4">
+          <span className="text-orange-700 font-bold text-xs uppercase tracking-[0.3em]">Ajibikes Fashion Collection</span>
+        </div>
+        <h1 className="text-5xl md:text-7xl font-bold text-gray-900 mb-4 tracking-tight">Ajibikes</h1>
+        <p className="text-gray-500 max-w-xl text-lg italic">
+          Draw your heritage. Stitch your soul. Visualize your bespoke African collection.
+        </p>
+        <button
+          onClick={() => setShowGuide(true)}
+          className="mt-6 flex items-center gap-2 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors uppercase tracking-widest border-b-2 border-transparent hover:border-orange-200 pb-1"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2v20M2 12h20" /></svg>
+          View Studio Handbook & Pattern Library
+        </button>
+      </header>
+
+      {showGuide && <FashionGuide onClose={() => setShowGuide(false)} />}
+
+      <main className="max-w-7xl mx-auto">
+        {/* Progress Tracker */}
+        <div className="flex justify-center mb-12">
+          <div className="flex items-center gap-4">
+            <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-500 ${step === 'canvas' ? 'bg-orange-600 text-white scale-110 shadow-lg' : 'bg-orange-100 text-orange-600'}`}>1</div>
+            <div className={`h-1 w-12 rounded transition-all duration-500 ${step !== 'canvas' ? 'bg-orange-600' : 'bg-orange-100'}`}></div>
+            <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-500 ${step === 'form' ? 'bg-orange-600 text-white scale-110 shadow-lg' : (step === 'results' ? 'bg-orange-600 text-white' : 'bg-orange-100 text-orange-600')}`}>2</div>
+            <div className={`h-1 w-12 rounded transition-all duration-500 ${step === 'results' ? 'bg-orange-600' : 'bg-orange-100'}`}></div>
+            <div className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all duration-500 ${step === 'results' ? 'bg-orange-600 text-white scale-110 shadow-lg' : 'bg-orange-100 text-orange-600'}`}>3</div>
+          </div>
+        </div>
+
+        {step === 'canvas' && (
+          <div className="animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <div className="text-center mb-8">
+              <h2 className="text-3xl font-bold text-gray-800 italic">Create Your Pattern</h2>
+              <p className="text-gray-500 mt-2">Use pencils, brushes, motifs, or upload an image to sketch your unique Ankara design.</p>
+            </div>
+            <FabricCanvas onSave={handlePatternSave} />
+          </div>
+        )}
+
+        {step === 'form' && (
+          <div className="animate-in fade-in slide-in-from-right-4 duration-500">
+             <div className="mb-8 flex items-center justify-center gap-8">
+               <div className="relative">
+                 <img src={fabricImage!} alt="Your Pattern" className="w-24 h-24 rounded-xl shadow-lg border-2 border-orange-200 object-cover" />
+                 <button onClick={() => setStep('canvas')} className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border text-orange-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>
+                 </button>
+               </div>
+               <div>
+                 <h2 className="text-2xl font-bold text-gray-800 italic">Next Step: Styling</h2>
+                 <p className="text-gray-500">Define the garment and accessories for your fabric.</p>
+               </div>
+             </div>
+             <GarmentForm 
+               details={details} 
+               onChange={setDetails} 
+               onSubmit={handleGenerate}
+               isLoading={loading}
+             />
+          </div>
+        )}
+
+        {step === 'results' && (
+          <div className="animate-in zoom-in-95 duration-700">
+            <DesignGallery 
+              images={generatedImages} 
+              onRefresh={handleRefresh}
+              isLoading={loading}
+              garmentStyle={details.style}
+              audience={details.audience}
+              bodyShape={details.bodyShape}
+            />
+            <div className="mt-12 text-center">
+               <button 
+                onClick={() => setStep('canvas')}
+                className="bg-black text-white px-10 py-4 rounded-full font-black uppercase tracking-widest hover:bg-orange-600 transition-colors shadow-2xl"
+               >
+                 Start New Creation
+               </button>
+            </div>
+          </div>
+        )}
+      </main>
+
+      {/* Background Decor */}
+      <div className="fixed top-20 -left-20 w-64 h-64 bg-orange-100 rounded-full opacity-30 blur-3xl pointer-events-none"></div>
+      <div className="fixed bottom-20 -right-20 w-96 h-96 bg-red-100 rounded-full opacity-30 blur-3xl pointer-events-none"></div>
+    </div>
+  );
+};
+
+export default App;
